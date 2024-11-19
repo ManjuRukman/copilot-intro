@@ -14,7 +14,7 @@ router.get('/', (req, res) => {
 router.get('/:id', (req, res) => {
     const found = comments.some(comment => comment.id === parseInt(req.params.id));
     if (found) {
-        res.json(comments.filter(comment => comment.id === parseInt(req.params.id));
+        res.json(comments.filter(comment => comment.id === parseInt(req.params.id)));
     } else {
         res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
     }
