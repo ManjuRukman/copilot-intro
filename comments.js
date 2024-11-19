@@ -1,73 +1,50 @@
-// create web server
+// Create web server
 const express = require('express');
-const comments = require('../data/comments');
+const app = express();
+const bodyParser = require('body-parser');
+const fs = require('fs');
+const path = require('path');
+const commentsPath = path.join(__dirname, 'comments.json');
 
-// create router
-const router = express.Router();
+// Middleware
+app.use(bodyParser.json());
 
-// get all comments
-router.get('/', (req, res) => {
-    res.json(comments);
-});
-
-// get comment by id
-router.get('/:id', (req, res) => {
-    const found = comments.some(comment => comment.id === parseInt(req.params.id));
-    if (found) {
-        res.json(comments.filter(comment => comment.id === parseInt(req.params.id)));
-    } else {
-        res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
+// Read comments from file
+app.get('/comments', (req, res) => {
+  fs.readFile(commentsPath, (err, data) => {
+    if (err) {
+      console.log('Error reading comments file:', err);
+      res.status(500).send('Error reading comments file');
+      return;
     }
+    res.send(data.toString());
+  });
 });
 
-// add comment
-router.post('/', (req, res) => {
-    const newComment = {
-        id: comments.length + 1,
-        name: req.body.name,
-        email: req.body.email,
-        body: req.body.body
-    };
-
-    if (!newComment.name || !newComment.email || !newComment.body) {
-        return res.status(400).json({ msg: 'Please include a name, email, and body' });
+// Add a new comment
+app.post('/comments', (req, res) => {
+  const comment = req.body;
+  fs.readFile(commentsPath, (err, data) => {
+    if (err) {
+      console.log('Error reading comments file:', err);
+      res.status(500).send('Error reading comments file');
+      return;
     }
-
-    comments.push(newComment);
-    res.json(comments);
+    const comments = JSON.parse(data);
+    comments.push(comment);
+    fs.writeFile(commentsPath, JSON.stringify(comments, null, 2), (err) => {
+      if (err) {
+        console.log('Error writing comments file:', err);
+        res.status(500).send('Error writing comments file');
+        return;
+      }
+      res.send('Comment added');
+    });
+  });
 });
 
-// update comment
-router.put('/:id', (req, res) => {
-    const found = comments.some(comment => comment.id === parseInt(req.params.id));
-    if (found) {
-        const updComment = req.body;
-        comments.forEach(comment => {
-            if (comment.id === parseInt(req.params.id)) {
-                comment.name = updComment.name ? updComment.name : comment.name;
-                comment.email = updComment.email ? updComment.email : comment.email;
-                comment.body = updComment.body ? updComment.body : comment.body;
-
-                res.json({ msg: 'Comment updated', comment });
-            }
-        });
-    } else {
-        res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
-    }
+// Start the server
+const port = 3000;
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
 });
-
-// delete comment
-router.delete('/:id', (req, res) => {
-    const found = comments.some(comment => comment.id === parseInt(req.params.id));
-    if (found) {
-        res.json({
-            msg: 'Comment deleted',
-            comments: comments.filter(comment => comment.id !== parseInt(req.params.id))
-        });
-    } else {
-        res.status(400).json({ msg: `No comment with the id of ${req.params.id}` });
-    }
-});
-
-// export router
-module.exports = router;
